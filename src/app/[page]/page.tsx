@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AuthPage, Onboarding } from "@/components/auth";
+import { AppealPage } from "@/components/appeal";
 import { PublicHeader, PublicFooter } from "@/components/layouts";
 import { SafetyPage } from "@/components/safety";
 import { brand } from "@/config/brand";
@@ -16,6 +17,7 @@ export default async function PublicPage({
   if (page === "login" || page === "register" || page === "forgot-password")
     return <AuthPage key={page} mode={page} />;
   if (page === "onboarding") return <Onboarding />;
+  if (page === "appeal") return <AppealPage />;
   if (page === "safety")
     return (
       <>

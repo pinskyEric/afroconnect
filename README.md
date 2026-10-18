@@ -1,8 +1,8 @@
-# AfriConnect — frontend prototype
+# AfriConnect — frontend and Laravel-connected prototype
 
-An Africa-first, adults-only social discovery experience, built with **Next.js App Router, React, TypeScript, Tailwind CSS, Lucide, React Hook Form, and Zod**. Warm off-white surfaces, expressive portraits, and a violet identity carry across the marketing site and application.
+An Africa-first, adults-only social discovery experience built with **Next.js, React, TypeScript, Tailwind CSS, Lucide, React Hook Form, and Zod**. The visual system uses deep teal, warm gold, soft neutrals, Manrope headings, and DM Sans body text.
 
-> **Frontend only.** All profiles, accounts, matches, video calls, messages, and moderation actions are fictional. No real authentication, delivery, camera access, payments, database, API, or moderation service exists. Do not enter real personal information or reuse a real password.
+> **Development status, not production-ready.** The UI can run against fictional mock services or a Laravel API adapter. In mock mode, accounts, messages, reports, matches, and moderation actions are simulated. API mode uses Laravel/Sanctum cookies when configured, but has not been validated against live services in this workspace. Do not enter real personal data or reuse a real password.
 
 ## Run locally
 
@@ -13,7 +13,18 @@ npm ci
 npm run dev
 ```
 
-Open **http://localhost:3000**. No environment variables, API keys, paid services, or external runtime dependencies are required. The server binds to `0.0.0.0` for shared preview environments.
+Open <http://localhost:3000>. Without `NEXT_PUBLIC_API_BASE_URL`, the composition root uses mock services. The Next server binds to `0.0.0.0` for shared previews.
+
+To configure the sibling Laravel backend, copy `.env.example` to `.env.local`. The example uses a same-origin `/api/v1` path and a **server-only** Next.js rewrite target so browser requests do not call a user's `localhost`:
+
+```bash
+cp .env.example .env.local
+# Local backend target defaults to http://localhost:8000; set public Reverb host/port for your environment.
+# Never put secrets or private TURN credentials in NEXT_PUBLIC_*.
+npm run dev
+```
+
+For deployment, point `AFRICONNECT_API_PROXY_TARGET` to the trusted backend reachable by the Next server, or set `NEXT_PUBLIC_API_BASE_URL` to a reachable HTTPS API origin. Set `NEXT_PUBLIC_REVERB_HOST/PORT/SCHEME` to an externally reachable Reverb endpoint (the websocket is not covered by the HTTP rewrite). The Laravel adapter uses Sanctum stateful cookies, CSRF protection, and `credentials: include`; it does not store bearer tokens in browser storage. Configure Sanctum stateful domains, cookie domain, HTTPS, and Reverb origin settings in the backend. See `/home/user/africonnect-backend/README.md` and its `docs/API.md`. **A local API setting is not evidence of a successful backend connection.** `NEXT_PUBLIC_SERVICE_ADAPTER=mock` explicitly forces mock mode.
 
 For an optimized preview:
 
@@ -22,85 +33,87 @@ npm run build
 npm run start
 ```
 
-This is the standard Next.js frontend rendering server, not a business backend. There are no API route handlers, server actions, database connections, or infrastructure services.
+This is the Next.js frontend server. Business data, auth, and authorization belong to the Laravel backend, not this browser application.
 
-## What you can explore
+## What is implemented
 
-- **Landing:** hero, profile previews, country/language/interest discovery links, how it works, simulated call preview, safety, mobile benefits, FAQs, legal/contact footer.
-- **Account entry:** validated login, registration, password visibility, recovery preview, adult eligibility and consent, seven-step onboarding with photo preview.
-- **Dashboard:** personalized greeting, online toggle, discovery recommendations and quick filters, recent matches, friend requests, unread messages and notifications.
-- **Discovery:** combined country, region, language, interest, online and name/bio search filters; favorites; profile dialogs; friend requests; skeleton and empty states.
-- **Matching:** preferences, video/text modes, cancellable search, match acceptance, skip/next, no-match and failure scenarios. Static-photo call stage, camera/mic toggles, timer, chat, report, emergency disconnect/block.
-- **Messaging:** searchable conversation list, unread counts, deep-linked recipients, sent bubbles, mobile list/detail navigation, empty states. Messages are local only.
-- **Friends:** existing, incoming, outgoing, accept, decline, cancel, remove confirmation, profile dialogs and conversation links.
-- **Profile:** editable name, username, country, languages, interests, bio, and validated local image preview. No public email, phone, or precise location.
-- **Notifications:** six categories, individual read actions, mark all, unread filter and caught-up state.
-- **Settings:** account, discovery, privacy, notification, sound/video, data saver, motion, contrast and logout preview.
-- **Safety:** guidelines, 18+ policy, all nine report categories, validated reporting, blocked list, block/unblock confirmation, harassment/scam and privacy guidance.
-- **Admin:** obvious development-only notice, seven mock metrics, report review/resolution, user search/status filtering, suspend/ban/restore confirmation, local activity.
-- **PWA preparation:** generated manifest, local 192/512 icons, theme colors, safe-area-aware bottom navigation, and `/offline` fallback design. No service worker, push notifications, or offline sync is claimed.
+- Responsive landing, registration/login, seven-step onboarding, discovery, profiles, friends, messaging, notifications, settings, safety, and admin demonstration screens.
+- A documented mock adapter and a Laravel API adapter for authentication, profiles/preferences, discovery/favorites, matchmaking queue polling, call lifecycle/signaling/ICE configuration, conversations/messages, friends, notifications, reports/blocks, account export/deletion, appeals, and moderation APIs.
+- A Laravel Echo/Pusher-protocol Reverb subscription adapter wired to active-session hydration and conversation-generation updates. **Live Reverb, CSRF/CORS, reconnect behavior, and event reconciliation are unverified; treat realtime delivery as unavailable until tested.**
+- Local display preferences only under `africonnect-ui`. No password, auth token, DOB, chat text, reports, or uploaded photos are persisted in local storage.
+- Fictional demo profiles and photos are not actual users or endorsers. The asset register records image source IDs; rights, model releases, and product-context suitability still need review.
 
-## Routes
+## Routes and demo boundaries
 
 Public: `/`, `/login`, `/register`, `/forgot-password`, `/terms`, `/privacy`, `/safety`.
 
-Demo application: `/app`, `/app/discover`, `/app/match`, `/app/messages`, `/app/friends`, `/app/notifications`, `/app/profile`, `/app/settings`, `/app/safety`.
+Application: `/app`, `/app/discover`, `/app/match`, `/app/messages`, `/app/friends`, `/app/notifications`, `/app/profile`, `/app/settings`, `/app/safety`, `/onboarding`.
 
-Additional: `/onboarding`, `/admin`, `/offline`, and a designed 404.
+Additional: `/admin`, `/offline`, and a designed 404. The mock admin route is intentionally not an access-control boundary. Real moderation requires an authenticated backend moderator role; the backend rejects ordinary accounts. The present frontend admin screen is primarily a mock-data view, not a verified live moderation console.
 
-The demo application and admin routes are intentionally accessible without authentication. They are **not secure access controls**.
+## Service and product boundaries
 
-## Quick test scenarios
+- **Accounts/persistence:** Laravel has registration, Sanctum session/token flows, profiles, preferences, and server authorization. The UI wires registration/login, server-side DOB submission during onboarding, active-session hydration, persistent preferences, and account services. Provider/social collection hydration and cookie/CORS behavior have not been validated against a live backend. A working login screen does not prove production auth.
+- **Age:** date of birth is only a self-asserted 18+ eligibility input. It is not age or identity verification. Any age-assurance method/vendor requires owner, privacy, and jurisdiction review; do not collect identity documents without a reviewed need and safe retention plan.
+- **Messages/notifications:** Laravel persists messages and notifications and can dispatch queued Reverb broadcasts. Queue retries/reconciliation during Redis outages and real-time client delivery remain unverified. Do not promise reliable delivery until operational monitoring, retry, and recovery behavior are tested.
+- **Calls:** Laravel only authorizes call lifecycle/signaling and returns ICE configuration. The frontend adapter exposes these endpoints, but the matching screen still uses a static-photo preview and has not wired an end-to-end match-acceptance/call/offer-answer-ICE flow or browser `RTCPeerConnection`. A properly operated TURN service with short-lived credentials is required for reliable connectivity. No audio/video media is relayed by Laravel.
+- **Moderation:** backend report/block/status/appeal routes and role/audit enforcement exist in source. In API mode the admin screen fetches reports/users and submits status actions with a reason and report decisions with notes; it displays API errors. Mock mode remains fictional. Live moderator authorization, deployment, staffing, response SLAs, escalation, appeals operations, and real abuse-case exercises remain launch gates.
+- **Payments:** no payment provider or live payment flow is selected or enabled. Verify target markets, provider availability, settlement/currency, fees, taxes, merchant/KYC requirements, refunds, and sandbox access before designing this feature. Do not use live credentials.
+- **Password reset:** backend recovery is email-only. Phone identities do not have a verified SMS reset channel.
+- **Data deletion/retention:** backend export/deletion and case-retention mechanisms exist. The current 365-day moderation/audit retention default is proposed and needs owner/privacy/legal approval before production.
+- **Legal copy:** `/terms` and `/privacy` remain development placeholders. Do not publish them as binding legal terms or privacy promises.
 
-1. Select **Explore the Platform** to skip account entry and open the seeded Alex profile.
-2. Register with `alex@example.com` and any fictional password of at least eight characters. Complete the seven onboarding steps. Dates younger than 18 cannot continue.
-3. Log in with `error@demo.test` to preview the simulated authentication error. Other valid fictional identities succeed.
-4. In discovery, combine `Uganda` with `English`, save Amina, open her profile, and try the favorites filter.
-5. In matching, open **Developer preview controls** to select normal, no-match, or connection-failure behavior.
-6. Accept a friend request, send a message, or mark notifications read. Navigate within the app to see state shared between pages.
-7. Report a fictional user. A notice explicitly confirms that no moderation team is contacted.
+## Required owner and legal-review inputs
 
-## State and privacy boundaries
+Before public launch, the product owner/legal counsel must provide or approve: legal operating entity and jurisdiction(s); service operator name and verified contact/address; support and safety escalation contacts; intended age policy and country availability; final terms/privacy/community-guideline text; lawful bases, purposes, processors, international transfers, retention schedule and deletion exceptions; complaint/appeal handling and response targets; photo/media rights and model releases; and any age-assurance design. These details are deliberately not invented here.
 
-**Memory only:** fictional profile changes/photos, friend relationships, outgoing messages, favorites, notifications, reports, blocks, admin status and call state. Full reload resets these. Navigation through Next links retains the provider state.
+## Assets
 
-**Local storage:** only whitelisted, harmless UI preferences under `africonnect-ui`. No password, identity, auth token, date of birth, chat text, report, or uploaded image is stored there. No camera or microphone browser permissions are requested.
-
-Privacy permissions, notification preference, and data saver are saved UI previews; actual enforcement and streaming need backend work. Motion/contrast, online badge, discovery preference links and initial call toggles have visible local effects.
-
-## Rebrand and maintain
-
-The **`src/config/`** directory is the central configuration area:
-
-- `brand.ts`: name, brand colors, typography, spacing/radius/shadow scales, navigation, hero, page headings, FAQs, and the typed copy accessor.
-- `content.en.json`: central catalog of static page copy, accessible labels, validation, and demo messages. Edit values, not stable keys. Product-name mentions are replaced through the brand accessor.
-- `palette.json`: decorative shades/alpha colors referenced by CSS custom properties; includes contrast-adjusted foreground tones.
-
-`src/components/ui.tsx` contains the shared CSS placeholder logo. Replace its mark or supply a brand asset when the final identity is chosen; regenerate the icon files to match. Profile fixtures and their bios live in `src/lib/data.ts`, separate from editorial copy. Data-dependent sentences remain composed in their domain components.
+`docs/assets.md` records local fonts and stock-image source IDs. It is **provenance, not a completed license or model-release review**. Confirm each image's current license, attribution requirements, commercial/product context and release status, or replace it with owned/licensed assets. The UI logo/icons remain placeholders; confirm icon/font licenses before release. Demo images must remain explicitly fictional and must not imply depicted people are members or endorsers.
 
 ## Checks
 
 ```bash
+npm ci
 npm run typecheck
 npm run lint
 npm test
 npm run build
+npm audit --omit=dev
+npm audit
+```
 
-# Browser tests: start the app in another terminal first.
+Browser checks (start the frontend in another terminal first):
+
+```bash
 npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-The test suite covers all 19 meaningful routes, desktop/mobile overflow, core social flows, onboarding, error scenarios, preference persistence, and accessibility checks. See `docs/frontend-testing-checklist.md` for the recorded scope and manual follow-up.
+`docs/frontend-testing-checklist.md` records historical automated checks and follow-up work. Earlier 12/12 unit tests, Chromium route/viewport sweeps, accessibility scans, lint/typecheck/build were run before the newest adapter and toolchain changes. Rerun them after `npm ci`; do not treat historical results as current verification. Physical Android/iOS and assistive-technology checks have not been completed.
 
-`npm run format` formats the source, tests and documentation.
+### Current dependency audit and upgrade status
 
-### Known limitations / follow-up
+A coordinated frontend toolchain update moved Tailwind CSS to v4 and updated Next.js and `eslint-config-next` together; it was **not** done with `npm audit fix --force`. The latest recorded full-tree audit still has **5 high developer-tool findings** in the Next ESLint plugin's `fast-glob` → `micromatch` → `braces` chain; npm currently lists `braces@3.0.3` as the latest available release, and its advisory has no patched release available in the registry used here. This is a tooling risk, not a claim of zero risk; keep lint/build tooling off untrusted patterns and recheck the upstream advisory before release. The production-only audit must be rerun and its result recorded after the final lockfile install.
 
-- No backend features or real security; no age verification, delivery, moderation, payments, media streaming or account persistence.
-- Terms, privacy, contact address, and app icons are development placeholders. Stock-photo subjects are not actual members and do not endorse this product.
-- Automated Chromium viewport checks do not replace physical iOS/Android testing or a full assistive-technology review.
-- At verification, the **production dependency audit is clean**. The full developer-tool audit reports seven inherited high-severity findings from the unpatched `braces@3.0.3` stack-exhaustion advisory through Tailwind 3 / ESLint's glob tooling. Do not process untrusted glob patterns; review a coordinated toolchain upgrade before launch. This is documented rather than hidden with a breaking `audit fix --force`.
+## Exact local backend commands
+
+From `/home/user/africonnect-backend`, after installing PHP/Composer dependencies and Docker Compose v2:
+
+```bash
+cp .env.example .env
+composer install
+php artisan key:generate
+docker compose config
+docker compose up -d
+# Create the MinIO bucket in its console, then:
+php artisan migrate --seed
+php artisan route:list
+php artisan test
+php vendor/bin/pint
+```
+
+See the backend README for separate web, queue, scheduler, and Reverb processes. PostgreSQL, Redis, Reverb, S3/MinIO, TURN, and Docker runtime behavior must be validated in a configured environment; those live integrations were not available for this inspection.
 
 ## Documentation
 
@@ -110,5 +123,3 @@ The test suite covers all 19 meaningful routes, desktop/mobile overflow, core so
 - [Laravel integration plan](docs/backend-integration-plan.md)
 - [Testing checklist](docs/frontend-testing-checklist.md)
 - [Asset provenance](docs/assets.md)
-
-**Recommended next phase:** agree the Laravel REST contracts and authentication/authorization design; replace adapters at `src/services/index.ts`; add secure provider hydration, moderation and age-assurance policies; then integrate real-time messaging and media as separate, explicitly scoped work.

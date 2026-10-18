@@ -18,7 +18,7 @@ Set `TEST_BASE_URL` if the frontend runs somewhere other than `http://localhost:
 
 ## Recorded verification
 
-Verified on 14 October 2026 in the sandboxed frontend environment:
+Historical visual/automated review: 14 October 2026. Reverification after the 19 October API, admin, appeal, Tailwind 4, and Next.js patch updates is required. Current checks completed on 19 October 2026 are listed below; prior Chromium counts are not treated as current.
 
 | Check                                  | Result                                                |
 | -------------------------------------- | ----------------------------------------------------- |

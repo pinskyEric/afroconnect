@@ -162,7 +162,7 @@
   "auth.country": "Country",
   "auth.create_demo_profile": "Create demo profile",
   "auth.date_of_birth": "Date of birth",
-  "auth.date_of_birth_isnt_stored_only_your": "Date of birth isn’t stored. Only your age appears in the demo profile.",
+  "auth.date_of_birth_isnt_stored_only_your": "Your submitted date of birth is stored privately for adult eligibility; it is not age or identity verification. Only your age appears publicly.",
   "auth.display_name": "Display name",
   "auth.email_or_phone_number": "Email or phone number",
   "auth.enter_a_fictional_email_or_phone_to": "Enter a fictional email or phone to preview account recovery.",

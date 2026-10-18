@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 @font-face {
   font-family: Manrope;
   src: url("/fonts/manrope.woff2") format("woff2");
@@ -2252,7 +2250,7 @@ textarea {
 }
 .sidebar-profile small {
   font-size: 9px;
-  color: var(--tone-8a8194);
+  color: var(--muted);
 }
 .sidebar-profile > svg {
   margin-left: auto;

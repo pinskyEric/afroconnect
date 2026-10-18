@@ -18,7 +18,7 @@ import {
 test("all mock profiles are adults with country-level locations", () => {
   assert.ok(
     profiles.every(
-      (p) => p.age >= 18 && countries.some((c) => c.name === p.country),
+      (p) => p.age !== null && p.age >= 18 && countries.some((c) => c.name === p.country),
     ),
   );
   assert.equal(new Set(profiles.map((p) => p.id)).size, profiles.length);
@@ -65,7 +65,7 @@ test("identity accepts email and phone but rejects malformed input", () => {
 test("registration requires adult and terms consent", () => {
   const input = {
     identity: "alex@example.com",
-    password: "demo-only-123",
+    password: "Demo-only-123!", 
     age: true,
     consent: true,
   };
@@ -115,7 +115,7 @@ test("safety report is a local pending value, categories are comprehensive", asy
 });
 test("matching supports success, empty and failure outcomes", async () => {
   assert.equal(
-    (await matchmakingService.find({ country: "Uganda" }))?.id,
+    (await matchmakingService.find({ country: "Uganda" }))?.profile.id,
     "u1",
   );
   assert.equal(await matchmakingService.find({}, "empty"), null);

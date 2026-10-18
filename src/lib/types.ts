@@ -8,7 +8,7 @@ export interface Profile {
   id: string;
   name: string;
   username: string;
-  age: number;
+  age: number | null;
   country: string;
   languages: string[];
   interests: string[];
@@ -36,6 +36,7 @@ export interface Conversation {
   userId: string;
   unread: number;
   messages: Message[];
+  channelGeneration?: number;
 }
 export interface FriendRequest {
   id: string;
@@ -74,9 +75,24 @@ export interface Preferences {
   language: string;
   country: string;
 }
+export interface Appeal {
+  id: string;
+  reason: string;
+  status: "pending" | "upheld" | "reinstated" | "dismissed";
+  createdAt: string;
+  decisionNotes?: string | null;
+}
 export interface AdminUser {
   id: string;
   status: "active" | "suspended" | "banned";
+  name?: string;
+  username?: string;
+  country?: string | null;
+}
+export interface MatchResult {
+  id: string;
+  profile: Profile;
+  status: "pending" | "accepted" | "skipped";
 }
 export type MatchState =
   "idle" | "searching" | "found" | "call" | "empty" | "error";

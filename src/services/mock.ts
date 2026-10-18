@@ -8,6 +8,7 @@ import {
   notifications,
   reports,
   getCountry,
+  defaultPreferences,
 } from "@/lib/data";
 import type { DiscoveryFilters, Profile } from "@/lib/types";
 import type {
@@ -20,6 +21,9 @@ import type {
   NotificationService,
   SafetyService,
   AdminService,
+  AccountService,
+  AppealService,
+  CallService,
 } from "./interfaces";
 export const delay = (ms = 350) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -58,6 +62,13 @@ export const authService: AuthService = {
     await delay(600);
     return { mode: "demo" };
   },
+  async current() {
+    return null;
+  },
+  async completeOnboarding(input) {
+    await delay(250);
+    return { ...myProfile, name: input.name, username: input.username, age: 18, country: input.country, languages: input.languages, interests: input.interests, bio: input.bio };
+  },
   async recover() {
     await delay(600);
   },
@@ -74,11 +85,23 @@ export const profileService: ProfileService = {
     await delay();
     return { ...profile };
   },
+  async getPreferences() {
+    return structuredClone(defaultPreferences);
+  },
+  async updatePreferences(preferences) {
+    return structuredClone(preferences);
+  },
 };
 export const discoveryService: DiscoveryService = {
   async list(filters) {
     await delay(300);
     return filterProfiles(filters);
+  },
+  async favorites() {
+    return [];
+  },
+  async favorite() {
+    await delay(80);
   },
 };
 export const matchmakingService: MatchmakingService = {
@@ -92,12 +115,28 @@ export const matchmakingService: MatchmakingService = {
     const results = filterProfiles({ ...filters, online: true }).filter(
       (p) => !excludeIds.includes(p.id),
     );
-    return results[Math.floor(Math.random() * results.length)] ?? null;
+    const person = results[Math.floor(Math.random() * results.length)];
+    return person ? { id: id(), profile: person, status: "pending" as const } : null;
   },
+  async accept() { return "accepted"; },
+  async status() { return "accepted"; },
+  async skip() { await delay(80); },
+};
+export const callService: CallService = {
+  async create() { return { id: id(), status: "ringing" }; },
+  async setStatus() { await delay(80); },
+  async signal() { await delay(80); },
+  async iceServers() { return [{ urls: "stun:stun.l.google.com:19302" }]; },
 };
 export const messagingService: MessagingService = {
   async list() {
     return structuredClone(conversations);
+  },
+  async create(userId) {
+    return { id: `c-${userId}`, userId, unread: 0, messages: [] };
+  },
+  async read() {
+    await delay(50);
   },
   async send(_conversationId, text) {
     await delay(120);
@@ -139,6 +178,9 @@ export const notificationService: NotificationService = {
   },
 };
 export const safetyService: SafetyService = {
+  async blocks() {
+    return [];
+  },
   async report(input) {
     await delay(300);
     return {
@@ -155,9 +197,23 @@ export const safetyService: SafetyService = {
     await delay(80);
   },
 };
+export const accountService: AccountService = {
+  async exportData() { await delay(150); },
+  async deleteAccount() { await delay(150); },
+};
+export const appealService: AppealService = {
+  async list() { return []; },
+  async create(reason) {
+    await delay(250);
+    return { id: id(), reason, status: "pending", createdAt: new Date().toISOString() };
+  },
+};
 export const adminService: AdminService = {
   async reports() {
     return structuredClone(reports);
+  },
+  async users() {
+    return profiles.map((item) => ({ id: item.id, name: item.name, username: item.username, country: item.country, status: "active" as const }));
   },
   async setStatus() {
     await delay(150);

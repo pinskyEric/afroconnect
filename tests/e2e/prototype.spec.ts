@@ -72,7 +72,7 @@ test("registration, password visibility, and seven-step onboarding", async ({
   await page.getByRole("button", { name: "Create demo profile" }).click();
   await expect(page.getByText("Enter an email or phone number.")).toBeVisible();
   await page.getByLabel("Email or phone number").fill("alex@example.com");
-  await page.getByLabel("Password", { exact: true }).fill("fictional123");
+  await page.getByLabel("Password", { exact: true }).fill("Fictional123!");
   await page.getByRole("button", { name: "Show password" }).click();
   await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
     "type",

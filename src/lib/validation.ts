@@ -15,6 +15,7 @@ export const loginSchema = z.object({
   password: z.string().min(8, uiText("validation.use_at_least_8_characters")),
 });
 export const registerSchema = loginSchema.extend({
+  password: z.string().min(12, "Use at least 12 characters.").regex(/[a-z]/, "Include a lowercase letter.").regex(/[A-Z]/, "Include an uppercase letter.").regex(/[0-9]/, "Include a number.").regex(/[^A-Za-z0-9]/, "Include a symbol."),
   age: z.literal(true, {
     errorMap: () => ({
       message: uiText("validation.you_must_be_18_or_older_to"),
