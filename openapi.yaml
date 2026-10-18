@@ -1,0 +1,420 @@
+openapi: 3.1.0
+info:
+  title: AfriConnect API
+  version: 1.0.0
+  description: >-
+    Versioned REST contract; authorization and validation requirements in docs/API.md.
+    Realtime updates use authenticated Reverb private channels: users.{id} for notifications
+    and conversation.channel_rotated; conversations.{id}.{channel_generation} for message/read
+    events. Blocking/status changes rotate conversation generations. See docs/API.md for event
+    payloads, resubscription instructions, and queue-worker requirements.
+servers:
+  - url: http://localhost:8000/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      security: []
+      summary: Register adult-eligible account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identity, password, password_confirmation, terms_accepted]
+              properties:
+                identity: {type: string, description: Email address or E.164 phone number}
+                password: {type: string, minLength: 12, writeOnly: true}
+                password_confirmation: {type: string, writeOnly: true}
+                terms_accepted: {type: boolean, const: true}
+      responses:
+        '201': {description: Created}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /auth/login:
+    post:
+      security: []
+      summary: Authenticate
+      responses:
+        '200': {description: Authenticated}
+        '422': {description: Invalid credentials or input}
+  /auth/logout:
+    post:
+      responses:
+        '204': {description: Token revoked}
+  /me:
+    get:
+      responses:
+        '200': {description: Current private account and profile}
+  /me/export:
+    get:
+      summary: Download an authenticated JSON export of the account holder's data
+      description: Includes the user's own account data and conversation history. Does not include other users' login/contact secrets.
+      responses:
+        '200': {description: JSON export attachment}
+        '401': {description: Authentication required}
+        '429': {description: One export per hour}
+  /me/account:
+    delete:
+      summary: Permanently erase personal profile and account data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, confirmation]
+              properties:
+                password: {type: string, writeOnly: true}
+                confirmation: {type: string, const: DELETE}
+      responses:
+        '204': {description: Account anonymized, soft-deleted, sessions revoked}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /me/appeals:
+    get:
+      summary: List the authenticated account's own moderation appeals
+      responses:
+        '200': {description: Appeal history}
+        '403': {description: Appeal-only account authorization required}
+    post:
+      summary: Submit an appeal for a suspended or banned account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 30, maxLength: 5000}
+                source_report_id: {type: string, format: uuid}
+      responses:
+        '201': {description: Appeal queued for moderation}
+        '409': {description: Account is not suspended/banned or already has a pending appeal}
+  /me/onboarding/complete:
+    post:
+      summary: Complete onboarding with server-validated adult birth-date eligibility
+      description: DOB is a self-declared eligibility gate, not identity verification. The frontend currently needs to send the raw DOB rather than only derived age.
+      responses:
+        '200': {description: Active profile}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /me/profile:
+    patch:
+      summary: Update current profile
+      responses:
+        '200': {description: Updated profile}
+    put:
+      summary: Replace/update current profile attributes
+      responses:
+        '200': {description: Updated profile}
+  /me/profile/photo:
+    post:
+      summary: Validate, sanitize and store profile image
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo: {type: string, format: binary}
+      responses:
+        '201': {description: Stored profile image}
+    delete:
+      summary: Delete current profile photo
+      responses:
+        '204': {description: Photo removed}
+  /profiles:
+    get:
+      summary: Search authenticated public profiles (block-aware)
+      parameters:
+        - {in: query, name: search, schema: {type: string, maxLength: 100}}
+        - {in: query, name: country, schema: {type: string}}
+        - {in: query, name: language, schema: {type: string}}
+        - {in: query, name: interest, schema: {type: string}}
+        - {in: query, name: online, schema: {type: boolean}}
+        - {in: query, name: page, schema: {type: integer, minimum: 1}}
+      responses:
+        '200': {description: Paginated public profiles}
+  /friend-requests:
+    get:
+      summary: List incoming and outgoing friend requests
+      responses:
+        '200': {description: Friend request collection}
+    post:
+      summary: Send friend request
+      responses:
+        '201': {description: Request created}
+  /conversations:
+    get:
+      summary: List conversations with channel generation for private Reverb subscriptions
+      responses:
+        '200': {description: Conversations, unread counts, and channel_generation}
+    post:
+      summary: Open or create permitted conversation
+      responses:
+        '201': {description: Conversation including channel_generation}
+  /conversations/{conversation_id}/messages:
+    parameters:
+      - {in: path, name: conversation_id, required: true, schema: {type: string, format: uuid}}
+    get:
+      summary: Read message history
+      responses:
+        '200': {description: Paginated messages}
+    post:
+      summary: Send an idempotent message
+      responses:
+        '201': {description: Message accepted for delivery}
+  /matchmaking/queue:
+    post:
+      summary: Enter Redis-coordinated matching queue
+      responses:
+        '202': {description: Queue entry}
+  /reports:
+    post:
+      summary: Submit safety report
+      responses:
+        '201': {description: Report queued for review}
+  /admin/reports:
+    get:
+      summary: Admin-only report queue
+      responses:
+        '200': {description: Reports; requires admin role}
+        '403': {description: Not authorized}
+  /auth/password/forgot:
+    post:
+      security: []
+      summary: Request password reset (email delivery; generic response)
+      responses:
+        '202': {description: Request accepted without account enumeration}
+  /auth/password/reset:
+    post:
+      security: []
+      summary: Reset password using emailed token
+      responses:
+        '204': {description: Password reset and tokens revoked}
+        '422': {description: Invalid or expired reset token}
+  /me/preferences:
+    get:
+      summary: Read current user's preferences
+      responses:
+        '200': {description: Current preference values}
+    patch:
+      summary: Update current user's preferences
+      responses:
+        '200': {description: Updated preferences}
+  /me/presence/heartbeat:
+    post:
+      summary: Refresh online presence
+      responses:
+        '204': {description: Heartbeat accepted}
+  /me/favorites:
+    get:
+      summary: List current user's favorites
+      responses:
+        '200': {description: Favorite profiles}
+  /me/favorites/{user_id}:
+    parameters:
+      - {in: path, name: user_id, required: true, schema: {type: string, format: uuid}}
+    put:
+      summary: Add a profile to favorites
+      responses:
+        '204': {description: Favorite added}
+    delete:
+      summary: Remove a favorite
+      responses:
+        '204': {description: Favorite removed}
+  /friend-requests/{request_id}/{action}:
+    parameters:
+      - {in: path, name: request_id, required: true, schema: {type: string, format: uuid}}
+      - {in: path, name: action, required: true, schema: {type: string, enum: [accept, decline, cancel]}}
+    post:
+      summary: Accept, decline, or cancel a friend request
+      responses:
+        '200': {description: Request transition applied}
+  /friends:
+    get:
+      summary: List friends
+      responses:
+        '200': {description: Friend collection}
+  /friends/{user_id}:
+    parameters:
+      - {in: path, name: user_id, required: true, schema: {type: string, format: uuid}}
+    delete:
+      summary: Remove friendship
+      responses:
+        '204': {description: Friendship removed}
+  /conversations/{conversation_id}/read:
+    parameters:
+      - {in: path, name: conversation_id, required: true, schema: {type: string, format: uuid}}
+    post:
+      summary: Mark messages read through a message ID
+      responses:
+        '204': {description: Read receipt updated}
+  /notifications:
+    get:
+      summary: List current user's notifications
+      responses:
+        '200': {description: Paginated notifications}
+  /notifications/{notification_id}/read:
+    parameters:
+      - {in: path, name: notification_id, required: true, schema: {type: string, format: uuid}}
+    post:
+      summary: Mark one notification read
+      responses:
+        '204': {description: Notification marked read}
+  /notifications/read-all:
+    post:
+      summary: Mark all notifications read
+      responses:
+        '204': {description: Notifications marked read}
+  /blocks:
+    get:
+      summary: List accounts blocked by current user
+      responses:
+        '200': {description: Block collection}
+    post:
+      summary: Block an account
+      responses:
+        '204': {description: Block applied}
+  /blocks/{user_id}:
+    parameters:
+      - {in: path, name: user_id, required: true, schema: {type: string, format: uuid}}
+    delete:
+      summary: Unblock an account
+      responses:
+        '204': {description: Block removed}
+  /matchmaking/preferences:
+    put:
+      summary: Update matchmaking preferences
+      responses:
+        '200': {description: Preferences saved}
+  /matchmaking/queue/{entry_id}:
+    parameters:
+      - {in: path, name: entry_id, required: true, schema: {type: string, format: uuid}}
+    get:
+      summary: Poll current user's matching queue status/result
+      responses:
+        '200': {description: Searching, matched, or expired result}
+    delete:
+      summary: Cancel matchmaking queue entry
+      responses:
+        '204': {description: Queue entry removed}
+  /matches/{match_id}:
+    parameters:
+      - {in: path, name: match_id, required: true, schema: {type: string, format: uuid}}
+    get:
+      summary: Read an authorized match status and the matched profile
+      responses:
+        '200': {description: Match state}
+        '404': {description: Match is unavailable to the caller}
+  /matches/{match_id}/{action}:
+    parameters:
+      - {in: path, name: match_id, required: true, schema: {type: string, format: uuid}}
+      - {in: path, name: action, required: true, schema: {type: string, enum: [accept, skip, next]}}
+    post:
+      summary: Accept, skip, or advance a match
+      responses:
+        '200': {description: Match state updated}
+  /calls:
+    post:
+      summary: Create a call session for an accepted match
+      responses:
+        '201': {description: Call session created}
+  /calls/{call_id}/{action}:
+    parameters:
+      - {in: path, name: call_id, required: true, schema: {type: string, format: uuid}}
+      - {in: path, name: action, required: true, schema: {type: string, enum: [accept, end]}}
+    post:
+      summary: Accept or end a call
+      responses:
+        '200': {description: Call state updated}
+  /calls/{call_id}/ice-servers:
+    parameters:
+      - {in: path, name: call_id, required: true, schema: {type: string, format: uuid}}
+    get:
+      summary: Get ICE server configuration for a participant
+      description: TURN must be separately provisioned; Laravel does not relay media.
+      responses:
+        '200': {description: ICE server list}
+  /admin/reports/{report_id}/decision:
+    parameters:
+      - {in: path, name: report_id, required: true, schema: {type: string, format: uuid}}
+    post:
+      summary: Resolve, dismiss, or action a report
+      description: actioned requires account_status suspended or banned and revokes target tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: {type: string, enum: [resolved, dismissed, actioned]}
+                notes: {type: string, maxLength: 2000}
+                account_status: {type: string, enum: [suspended, banned], description: Required when decision is actioned}
+      responses:
+        '204': {description: Decision and audit records written}
+  /admin/users:
+    get:
+      summary: Search users (admin only)
+      responses:
+        '200': {description: User results}
+  /admin/users/{user_id}/status:
+    parameters:
+      - {in: path, name: user_id, required: true, schema: {type: string, format: uuid}}
+    patch:
+      summary: Change user account status (admin only)
+      responses:
+        '204': {description: Status updated and audited}
+  /admin/appeals:
+    get:
+      summary: Admin-only moderation appeal queue
+      responses:
+        '200': {description: Paginated appeals}
+        '403': {description: Not authorized}
+  /admin/appeals/{appeal_id}/decision:
+    parameters:
+      - {in: path, name: appeal_id, required: true, schema: {type: string, format: uuid}}
+    post:
+      summary: Review an appeal and record moderation decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, notes]
+              properties:
+                decision: {type: string, enum: [upheld, reinstated, dismissed]}
+                notes: {type: string, minLength: 5, maxLength: 2000}
+      responses:
+        '204': {description: Decision and audit records written}
+        '403': {description: Not authorized}
+  /admin/audit:
+    get:
+      summary: List admin audit entries
+      responses:
+        '200': {description: Paginated audit records}
+  /calls/{call_id}/signals:
+    parameters:
+      - {in: path, name: call_id, required: true, schema: {type: string, format: uuid}}
+    post:
+      summary: Relay validated WebRTC signaling payload (never media)
+      responses:
+        '202': {description: Signal relayed to other authorized participant}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: Sanctum token}
+  responses:
+    ValidationError:
+      description: Validation failure
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: {type: string}
+              errors: {type: object}

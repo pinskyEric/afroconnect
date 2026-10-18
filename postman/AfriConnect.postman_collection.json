@@ -1,0 +1,270 @@
+{
+  "info": {
+    "name": "AfriConnect API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": "replace-with-real-uuid"
+    },
+    {
+      "key": "conversationId",
+      "value": "replace-with-real-uuid"
+    },
+    {
+      "key": "appealId",
+      "value": "replace-with-created-appeal-uuid"
+    }
+  ],
+  "item": [
+    {
+      "name": "Register (fictional test account)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identity\": \"demo1@example.test\",\n  \"password\": \"Local-only-test-Pass-123!\",\n  \"password_confirmation\": \"Local-only-test-Pass-123!\",\n  \"terms_accepted\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"identity\":\"demo1@example.test\",\"password\":\"Local-only-test-Pass-123!\"}"
+        }
+      }
+    },
+    {
+      "name": "Profile search",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles?country=Uganda&language=English&online=true&page=1"
+      }
+    },
+    {
+      "name": "My profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/me"
+      }
+    },
+    {
+      "name": "List conversations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/conversations"
+      }
+    },
+    {
+      "name": "Admin reports (403 unless admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/reports"
+      }
+    },
+    {
+      "name": "Complete onboarding",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/me/onboarding/complete",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"birth_date\": \"1998-04-12\",\n  \"name\": \"Fictional Demo\",\n  \"username\": \"fictional_demo\",\n  \"country\": \"Uganda\",\n  \"languages\": [\"English\"],\n  \"interests\": [\"Music\"]\n}"
+        }
+      }
+    },
+    {
+      "name": "Download account data export",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/me/export"
+      }
+    },
+    {
+      "name": "Delete account (irreversible; local test only)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/me/account",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"password\": \"Local-only-test-Pass-123!\",\n  \"confirmation\": \"DELETE\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Submit account appeal (suspended/banned only)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/me/appeals",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"I believe this fictional moderation action was a mistake and request a human review.\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Admin appeal queue",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/appeals?status=pending"
+      }
+    },
+    {
+      "name": "Admin appeal decision (moderator only)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/appeals/{{appealId}}/decision",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"decision\": \"reinstated\",\n  \"notes\": \"Reviewed fictional test case and restored access.\"\n}"
+        }
+      }
+    }
+  ]
+}
